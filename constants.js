@@ -14,8 +14,8 @@ export const PRIORITY = {
 }
 
 export const TAGS = [
-  'Backend', 'Frontend', 'Infraestructura',
-  'QA / Testing', 'Datos', 'Diseño',
+    'Procesos', 'Productividad', 'Metodología',
+    'Soporte operacional',
 ]
 
 export const COLORS = {
