@@ -5,6 +5,7 @@ import { Avatar, Badge, PriorityDot, ProgressBar, Spinner } from './UI'
 import TaskPanel from './TaskPanel'
 import TaskModal from './TaskModal'
 import UsersAdmin from './UsersAdmin'
+import WeeklyReport from './WeeklyReport'
 import { STATUS, PRIORITY, QUADS, fmtDate, isOverdue, quadrant } from './constants'
 
 function ListView({ tasks, profiles, onOpen, filterStatus, filterLeader, setFilterStatus, setFilterLeader }) {
@@ -54,83 +55,21 @@ function ListView({ tasks, profiles, onOpen, filterStatus, filterLeader, setFilt
     </div>
   </>)
 }
-
 function KanbanView({ tasks, profiles, onOpen, filterLeader }) {
   const byId = id => profiles.find(p => p.id === id)
   const ft = tasks.filter(t => filterLeader === 'all' || t.leader_id === filterLeader)
   const cols = [{ key: 'todo', bg: '#f7f7f9' }, { key: 'progress', bg: '#EBF4FD' }, { key: 'review', bg: '#FEF6EA' }, { key: 'blocked', bg: '#FEF0F0' }, { key: 'done', bg: '#F0F7E8' }]
   const FLAG = { Chile: '🇨🇱', Colombia: '🇨🇴' }
-  return (
-    <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 8, minHeight: 440 }}>
-      {cols.map(col => {
-        const ct = ft.filter(t => t.status === col.key)
-        return (
-          <div key={col.key} style={{ minWidth: 190, flex: 1, background: col.bg, borderRadius: 10, padding: 10, border: '0.5px solid #eee' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <span style={{ fontSize: 12, fontWeight: 500, color: '#666' }}>{STATUS[col.key]?.label}</span>
-              <span style={{ fontSize: 11, background: '#fff', padding: '1px 7px', borderRadius: 10, color: '#aaa', border: '0.5px solid #eee' }}>{ct.length}</span>
-            </div>
-            {ct.map(t => {
-              const e = byId(t.engineer_id), over = isOverdue(t)
-              return (
-                <div key={t.id} onClick={() => onOpen(t.id)} style={{ background: '#fff', border: '0.5px solid #eee', borderRadius: 8, padding: 10, marginBottom: 8, cursor: 'pointer' }} onMouseEnter={ev => ev.currentTarget.style.borderColor = '#ccc'} onMouseLeave={ev => ev.currentTarget.style.borderColor = '#eee'}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 4, marginBottom: 4 }}><span style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.4 }}>{t.title}</span><PriorityDot priority={t.priority} /></div>
-                  <div style={{ fontSize: 11, color: '#aaa', marginBottom: 6 }}>{FLAG[t.country] || ''} {t.tag}</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    {e ? <Avatar profile={e} size={20} /> : <span />}
-                    <div>{t._comment_count > 0 && <span style={{ fontSize: 10, color: '#185FA5', marginRight: 6 }}>💬{t._comment_count}</span>}<span style={{ fontSize: 10, color: over ? '#A32D2D' : '#aaa' }}>{t.due_date ? new Date(t.due_date).toLocaleDateString('es-CL', { day: '2-digit', month: 'short' }) : '—'}</span></div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )
-      })}
-    </div>
-  )
+  return (<div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 8, minHeight: 440 }}>{cols.map(col => { const ct = ft.filter(t => t.status === col.key); return (<div key={col.key} style={{ minWidth: 190, flex: 1, background: col.bg, borderRadius: 10, padding: 10, border: '0.5px solid #eee' }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}><span style={{ fontSize: 12, fontWeight: 500, color: '#666' }}>{STATUS[col.key]?.label}</span><span style={{ fontSize: 11, background: '#fff', padding: '1px 7px', borderRadius: 10, color: '#aaa', border: '0.5px solid #eee' }}>{ct.length}</span></div>{ct.map(t => { const e = byId(t.engineer_id), over = isOverdue(t); return (<div key={t.id} onClick={() => onOpen(t.id)} style={{ background: '#fff', border: '0.5px solid #eee', borderRadius: 8, padding: 10, marginBottom: 8, cursor: 'pointer' }} onMouseEnter={ev => ev.currentTarget.style.borderColor = '#ccc'} onMouseLeave={ev => ev.currentTarget.style.borderColor = '#eee'}><div style={{ display: 'flex', justifyContent: 'space-between', gap: 4, marginBottom: 4 }}><span style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.4 }}>{t.title}</span><PriorityDot priority={t.priority} /></div><div style={{ fontSize: 11, color: '#aaa', marginBottom: 6 }}>{FLAG[t.country] || ''} {t.tag}</div><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>{e ? <Avatar profile={e} size={20} /> : <span />}<div>{t._comment_count > 0 && <span style={{ fontSize: 10, color: '#185FA5', marginRight: 6 }}>💬{t._comment_count}</span>}<span style={{ fontSize: 10, color: over ? '#A32D2D' : '#aaa' }}>{t.due_date ? new Date(t.due_date).toLocaleDateString('es-CL', { day: '2-digit', month: 'short' }) : '—'}</span></div></div></div>) })}</div>) })}</div>)
 }
-
 function MatrixView({ tasks, onOpen, filterLeader }) {
   const ft = tasks.filter(t => filterLeader === 'all' || t.leader_id === filterLeader)
-  return (<>
-    <p style={{ fontSize: 13, color: '#888', marginBottom: 14 }}>Clasificación automática. Haz clic en una tarea para ver detalle.</p>
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-      {['do-first', 'plan', 'fill-in', 'avoid'].map(k => {
-        const info = QUADS[k], qt = ft.filter(t => quadrant(t) === k)
-        return (
-          <div key={k} style={{ background: info.bg, border: `0.5px solid ${info.bc}`, borderRadius: 10, padding: 14, minHeight: 150 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
-              <div><div style={{ fontSize: 13, fontWeight: 500, color: info.tc }}>{info.label}</div><div style={{ fontSize: 11, color: info.tc, opacity: .8 }}>{info.sub}</div></div>
-              <span style={{ fontSize: 11, background: 'rgba(255,255,255,.6)', padding: '2px 8px', borderRadius: 10, color: info.tc }}>{qt.length}</span>
-            </div>
-            {qt.map(t => (<div key={t.id} onClick={() => onOpen(t.id)} style={{ background: 'rgba(255,255,255,.75)', border: `0.5px solid ${info.bc}`, borderRadius: 6, padding: '7px 10px', marginBottom: 6, cursor: 'pointer' }} onMouseEnter={ev => ev.currentTarget.style.background = 'rgba(255,255,255,.95)'} onMouseLeave={ev => ev.currentTarget.style.background = 'rgba(255,255,255,.75)'}><div style={{ fontSize: 12, fontWeight: 500 }}>{t.title}</div><div style={{ display: 'flex', gap: 8, marginTop: 4, alignItems: 'center' }}><span style={{ fontSize: 10, color: '#666' }}>I:{t.impact} E:{t.effort}</span><Badge status={t.status} /></div></div>))}
-          </div>
-        )
-      })}
-    </div>
-  </>)
+  return (<><p style={{ fontSize: 13, color: '#888', marginBottom: 14 }}>Clasificación automática.</p><div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>{['do-first', 'plan', 'fill-in', 'avoid'].map(k => { const info = QUADS[k], qt = ft.filter(t => quadrant(t) === k); return (<div key={k} style={{ background: info.bg, border: `0.5px solid ${info.bc}`, borderRadius: 10, padding: 14, minHeight: 150 }}><div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}><div><div style={{ fontSize: 13, fontWeight: 500, color: info.tc }}>{info.label}</div><div style={{ fontSize: 11, color: info.tc, opacity: .8 }}>{info.sub}</div></div><span style={{ fontSize: 11, background: 'rgba(255,255,255,.6)', padding: '2px 8px', borderRadius: 10, color: info.tc }}>{qt.length}</span></div>{qt.map(t => (<div key={t.id} onClick={() => onOpen(t.id)} style={{ background: 'rgba(255,255,255,.75)', border: `0.5px solid ${info.bc}`, borderRadius: 6, padding: '7px 10px', marginBottom: 6, cursor: 'pointer' }} onMouseEnter={ev => ev.currentTarget.style.background = 'rgba(255,255,255,.95)'} onMouseLeave={ev => ev.currentTarget.style.background = 'rgba(255,255,255,.75)'}><div style={{ fontSize: 12, fontWeight: 500 }}>{t.title}</div><div style={{ display: 'flex', gap: 8, marginTop: 4, alignItems: 'center' }}><span style={{ fontSize: 10, color: '#666' }}>I:{t.impact} E:{t.effort}</span><Badge status={t.status} /></div></div>))}</div>) })}</div></>)
 }
-
 function TeamView({ tasks, profiles }) {
   const leaders = profiles.filter(p => p.role === 'leader'), engineers = profiles.filter(p => p.role === 'engineer')
-  return (<>
-    {leaders.map(l => {
-      const lTasks = tasks.filter(t => t.leader_id === l.id), done = lTasks.filter(t => t.status === 'done').length, pct = lTasks.length ? Math.round(done / lTasks.length * 100) : 0
-      const eng = engineers.filter(e => lTasks.some(t => t.engineer_id === e.id))
-      return (
-        <div key={l.id} style={{ background: '#fff', border: '0.5px solid #eee', borderRadius: 10, padding: 16, marginBottom: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-            <Avatar profile={l} size={36} />
-            <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 500 }}>{l.full_name}</div><div style={{ fontSize: 11, color: '#888' }}>Líder · {lTasks.length} tareas · {done} completadas</div></div>
-            <div style={{ textAlign: 'right', minWidth: 100 }}><ProgressBar value={pct} color="#3C3489" /><div style={{ fontSize: 11, color: '#aaa', marginTop: 4 }}>{pct}% completado</div></div>
-          </div>
-          {eng.map(e => { const eTasks = lTasks.filter(t => t.engineer_id === e.id), eBlocked = eTasks.filter(t => t.status === 'blocked').length; return (<div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: '#f7f7f9', borderRadius: 7, marginBottom: 6 }}><Avatar profile={e} size={24} /><div style={{ flex: 1 }}><div style={{ fontSize: 13, fontWeight: 500 }}>{e.full_name}</div><div style={{ fontSize: 11, color: '#aaa' }}>{e.specialty}</div></div><div style={{ textAlign: 'right' }}><div style={{ fontSize: 12 }}>{eTasks.length} tareas</div>{eBlocked > 0 && <span style={{ fontSize: 10, background: '#FCEBEB', color: '#A32D2D', padding: '1px 6px', borderRadius: 10 }}>{eBlocked} bloqueada{eBlocked > 1 ? 's' : ''}</span>}</div></div>) })}
-        </div>
-      )
-    })}
-  </>)
+  return (<>{leaders.map(l => { const lTasks = tasks.filter(t => t.leader_id === l.id), done = lTasks.filter(t => t.status === 'done').length, pct = lTasks.length ? Math.round(done / lTasks.length * 100) : 0; const eng = engineers.filter(e => lTasks.some(t => t.engineer_id === e.id)); return (<div key={l.id} style={{ background: '#fff', border: '0.5px solid #eee', borderRadius: 10, padding: 16, marginBottom: 14 }}><div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}><Avatar profile={l} size={36} /><div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 500 }}>{l.full_name}</div><div style={{ fontSize: 11, color: '#888' }}>Líder · {lTasks.length} tareas · {done} completadas</div></div><div style={{ textAlign: 'right', minWidth: 100 }}><ProgressBar value={pct} color="#3C3489" /><div style={{ fontSize: 11, color: '#aaa', marginTop: 4 }}>{pct}% completado</div></div></div>{eng.map(e => { const eTasks = lTasks.filter(t => t.engineer_id === e.id), eBlocked = eTasks.filter(t => t.status === 'blocked').length; return (<div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: '#f7f7f9', borderRadius: 7, marginBottom: 6 }}><Avatar profile={e} size={24} /><div style={{ flex: 1 }}><div style={{ fontSize: 13, fontWeight: 500 }}>{e.full_name}</div></div><div style={{ textAlign: 'right' }}><div style={{ fontSize: 12 }}>{eTasks.length} tareas</div>{eBlocked > 0 && <span style={{ fontSize: 10, background: '#FCEBEB', color: '#A32D2D', padding: '1px 6px', borderRadius: 10 }}>{eBlocked} bloqueada{eBlocked > 1 ? 's' : ''}</span>}</div></div>) })}</div>) })}</>)
 }
-
 export default function AppPage() {
   const { profile: me, signOut } = useAuth()
   const [tasks, setTasks] = useState([])
@@ -141,36 +80,30 @@ export default function AppPage() {
   const [filterLeader, setFilterLeader] = useState('all')
   const [openTaskId, setOpenTaskId] = useState(null)
   const [showForm, setShowForm] = useState(false)
-
   const loadAll = useCallback(async () => {
-    const [{ data: t }, { data: p }, { data: cc }] = await Promise.all([
-      supabase.from('tasks').select('*').order('created_at', { ascending: false }),
-      supabase.from('profiles').select('*'),
-      supabase.from('comments').select('task_id'),
-    ])
-    const countMap = {}
-    ;(cc || []).forEach(c => { countMap[c.task_id] = (countMap[c.task_id] || 0) + 1 })
+    const [{ data: t }, { data: p }, { data: cc }] = await Promise.all([supabase.from('tasks').select('*').order('created_at', { ascending: false }), supabase.from('profiles').select('*'), supabase.from('comments').select('task_id')])
+    const countMap = {};(cc || []).forEach(c => { countMap[c.task_id] = (countMap[c.task_id] || 0) + 1 })
     setTasks((t || []).map(task => ({ ...task, _comment_count: countMap[task.id] || 0 })))
-    setProfiles(p || [])
-    setLoading(false)
+    setProfiles(p || []); setLoading(false)
   }, [])
-
   useEffect(() => { loadAll() }, [loadAll])
   useEffect(() => {
-    const ch = supabase.channel('app-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, loadAll)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, loadAll)
-      .subscribe()
+    const ch = supabase.channel('app-realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, loadAll).on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, loadAll).subscribe()
     return () => supabase.removeChannel(ch)
   }, [loadAll])
-
   const isLeader = me?.role === 'leader'
-  const VIEWS = [{ key: 'list', icon: '≡', label: 'Tareas' }, { key: 'kanban', icon: '⊞', label: 'Tablero' }, { key: 'matrix', icon: '◎', label: 'Matriz' }, { key: 'team', icon: '⊙', label: 'Equipo' }, ...(isLeader ? [{ key: 'admin', icon: '👥', label: 'Usuarios' }] : [])]
+  const VIEWS = [
+    { key: 'list',   icon: '≡', label: 'Tareas' },
+    { key: 'kanban', icon: '⊞', label: 'Tablero' },
+    { key: 'matrix', icon: '◎', label: 'Matriz' },
+    { key: 'team',   icon: '⊙', label: 'Equipo' },
+    { key: 'report', icon: '📄', label: 'Reporte' },
+    ...(isLeader ? [{ key: 'admin', icon: '👥', label: 'Usuarios' }] : []),
+  ]
   const done = tasks.filter(t => t.status === 'done').length
   const pct = tasks.length ? Math.round(done / tasks.length * 100) : 0
   const leaders = profiles.filter(p => p.role === 'leader')
-  const viewTitle = { list: 'Todas las tareas', kanban: 'Tablero Kanban', matrix: 'Matriz Impacto / Esfuerzo', team: 'Equipo', admin: 'Administrar usuarios' }
-
+  const viewTitle = { list: 'Todas las tareas', kanban: 'Tablero Kanban', matrix: 'Matriz Impacto / Esfuerzo', team: 'Equipo', report: 'Reporte Semanal', admin: 'Administrar usuarios' }
   return (
     <div style={{ display: 'flex', height: '100vh', fontFamily: 'system-ui, -apple-system, sans-serif', background: '#f5f4f9' }}>
       <div style={{ width: 210, minWidth: 210, background: '#fff', borderRight: '0.5px solid #eee', display: 'flex', flexDirection: 'column' }}>
@@ -180,11 +113,7 @@ export default function AppPage() {
         </div>
         <div style={{ padding: '8px 0' }}>
           <div style={{ padding: '4px 16px 6px', fontSize: 10, color: '#bbb', textTransform: 'uppercase', letterSpacing: .5 }}>Vistas</div>
-          {VIEWS.map(v => (
-            <div key={v.key} onClick={() => setView(v.key)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 16px', fontSize: 13, cursor: 'pointer', color: view === v.key ? '#111' : '#888', background: view === v.key ? '#f5f4f9' : 'transparent', fontWeight: view === v.key ? 500 : 400 }} onMouseEnter={ev => { if (view !== v.key) ev.currentTarget.style.background = '#fafafa' }} onMouseLeave={ev => { if (view !== v.key) ev.currentTarget.style.background = 'transparent' }}>
-              <span style={{ fontSize: 14, opacity: .7 }}>{v.icon}</span> {v.label}
-            </div>
-          ))}
+          {VIEWS.map(v => (<div key={v.key} onClick={() => setView(v.key)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 16px', fontSize: 13, cursor: 'pointer', color: view === v.key ? '#111' : '#888', background: view === v.key ? '#f5f4f9' : 'transparent', fontWeight: view === v.key ? 500 : 400 }} onMouseEnter={ev => { if (view !== v.key) ev.currentTarget.style.background = '#fafafa' }} onMouseLeave={ev => { if (view !== v.key) ev.currentTarget.style.background = 'transparent' }}><span style={{ fontSize: 14, opacity: .7 }}>{v.icon}</span> {v.label}</div>))}
         </div>
         <div style={{ marginTop: 'auto', padding: '14px 16px', borderTop: '0.5px solid #eee' }}>
           <div style={{ fontSize: 11, color: '#888', marginBottom: 6 }}>Progreso general</div>
@@ -200,15 +129,8 @@ export default function AppPage() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ background: '#fff', borderBottom: '0.5px solid #eee', padding: '0 22px', height: 50, display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: 15, fontWeight: 500, flex: 1 }}>{viewTitle[view]}</span>
-          {view !== 'team' && view !== 'admin' && (
-            <select value={filterLeader} onChange={e => setFilterLeader(e.target.value)} style={{ padding: '5px 10px', fontSize: 13, border: '0.5px solid #ddd', borderRadius: 7, background: '#fff', color: '#111', cursor: 'pointer' }}>
-              <option value="all">Todos los líderes</option>
-              {leaders.map(l => <option key={l.id} value={l.id}>{l.full_name}</option>)}
-            </select>
-          )}
-          {isLeader && view !== 'admin' && (
-            <button onClick={() => setShowForm(true)} style={{ background: '#3C3489', color: '#fff', border: 'none', borderRadius: 7, padding: '7px 14px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}>+ Nueva tarea</button>
-          )}
+          {view !== 'team' && view !== 'admin' && view !== 'report' && (<select value={filterLeader} onChange={e => setFilterLeader(e.target.value)} style={{ padding: '5px 10px', fontSize: 13, border: '0.5px solid #ddd', borderRadius: 7, background: '#fff', color: '#111', cursor: 'pointer' }}><option value="all">Todos los líderes</option>{leaders.map(l => <option key={l.id} value={l.id}>{l.full_name}</option>)}</select>)}
+          {isLeader && view !== 'admin' && view !== 'report' && (<button onClick={() => setShowForm(true)} style={{ background: '#3C3489', color: '#fff', border: 'none', borderRadius: 7, padding: '7px 14px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}>+ Nueva tarea</button>)}
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '18px 22px' }}>
           {loading ? <Spinner /> : (<>
@@ -216,6 +138,7 @@ export default function AppPage() {
             {view === 'kanban' && <KanbanView tasks={tasks} profiles={profiles} onOpen={setOpenTaskId} filterLeader={filterLeader} />}
             {view === 'matrix' && <MatrixView tasks={tasks} onOpen={setOpenTaskId} filterLeader={filterLeader} />}
             {view === 'team'   && <TeamView tasks={tasks} profiles={profiles} />}
+            {view === 'report' && <WeeklyReport />}
             {view === 'admin'  && <UsersAdmin />}
           </>)}
         </div>
