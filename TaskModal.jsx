@@ -19,7 +19,7 @@ export default function TaskModal({ task, profiles, onSave, onClose }) {
     title: task?.title || '',
     description: task?.description || '',
     leader_id: task?.leader_id || leaders[0]?.id || '',
-    engineer_id: task?.engineer_id || engineers[0]?.id || '',
+        engineer_id: task?.engineer_id || engineers[0]?.id || null,
     status: task?.status || 'todo',
     priority: task?.priority || 'medium',
     impact: task?.impact || 5,
@@ -33,10 +33,11 @@ export default function TaskModal({ task, profiles, onSave, onClose }) {
 
   async function save() {
     if (!f.title.trim()) { setError('El título es obligatorio'); return }
+        const clean = { ...f, engineer_id: f.engineer_id || null, leader_id: f.leader_id || null }
     setSaving(true); setError('')
     try {
       if (isNew) {
-        const { data: t, error: e } = await supabase.from('tasks').insert({ ...f, created_by: me?.id }).select().single()
+                const { data: t, error: e } = await supabase.from('tasks').insert({ ...clean, created_by: me?.id }).select().single()
         if (e) throw e
         await supabase.from('history').insert({ task_id: t.id, actor_id: me?.id, message: 'Tarea creada' })
       } else {
@@ -51,7 +52,7 @@ export default function TaskModal({ task, profiles, onSave, onClose }) {
         }
         if (old.due_date !== f.due_date)   changes.push(`Fecha: ${old.due_date || '—'} → ${f.due_date || '—'}`)
         if (!changes.length) changes.push('Tarea actualizada')
-        const { error: e } = await supabase.from('tasks').update(f).eq('id', task.id)
+                const { error: e } = await supabase.from('tasks').update(clean).eq('id', task.id)
         if (e) throw e
         await supabase.from('history').insert(changes.map(msg => ({ task_id: task.id, actor_id: me?.id, message: msg })))
       }
