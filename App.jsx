@@ -1,6 +1,6 @@
-import { AuthProvider, useAuth } from './lib/AuthContext'
-import AuthPage from './views/AuthPage'
-import AppPage  from './views/AppPage'
+import { AuthProvider, useAuth } from './AuthContext'
+import AuthPage from './AuthPage'
+import AppPage  from './AppPage'
 
 function Gate() {
   const { user, loading } = useAuth()

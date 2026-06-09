@@ -1,4 +1,4 @@
-import { COLORS, PRIORITY, STATUS } from '../lib/constants'
+import { COLORS, PRIORITY, STATUS } from './constants'
 
 export function Avatar({ profile, size = 26, style: sx = {} }) {
   if (!profile) return null
@@ -8,7 +8,7 @@ export function Avatar({ profile, size = 26, style: sx = {} }) {
       width: size, height: size, borderRadius: '50%', display: 'inline-flex',
       alignItems: 'center', justifyContent: 'center', fontSize: size * 0.38,
       fontWeight: 500, background: c.bg, color: c.color, flexShrink: 0,
-      border: '1.5px solid var(--border)', ...sx,
+      border: '1.5px solid #fff', ...sx,
     }}>
       {profile.initials || '??'}
     </span>
@@ -43,15 +43,19 @@ export function ProgressBar({ value, color = '#3C3489', height = 4 }) {
   )
 }
 
-export function Sel({ value, onChange, children, style: sx = {} }) {
-  return (
-    <select value={value} onChange={e => onChange(e.target.value)} style={{
-      padding: '5px 10px', fontSize: 13, border: '0.5px solid #ccc',
-      borderRadius: 7, background: '#fff', color: '#111', cursor: 'pointer', ...sx,
-    }}>
-      {children}
-    </select>
-  )
+export function Btn({ onClick, children, primary, danger, small, disabled, style: sx = {} }) {
+  const base = {
+    display: 'inline-flex', alignItems: 'center', gap: 6, cursor: disabled ? 'not-allowed' : 'pointer',
+    border: '0.5px solid #ccc', borderRadius: 7, fontSize: small ? 12 : 13,
+    padding: small ? '4px 10px' : '7px 14px', fontFamily: 'inherit',
+    opacity: disabled ? .45 : 1,
+  }
+  const variant = primary
+    ? { background: '#3C3489', color: '#fff', border: 'none' }
+    : danger
+    ? { background: 'none', color: '#A32D2D', borderColor: '#F7C1C1' }
+    : { background: 'none', color: '#111' }
+  return <button onClick={disabled ? undefined : onClick} style={{ ...base, ...variant, ...sx }}>{children}</button>
 }
 
 export function FG({ label, children, mb = 14 }) {
@@ -65,19 +69,4 @@ export function FG({ label, children, mb = 14 }) {
 
 export function Spinner() {
   return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 40, color: '#888', fontSize: 14 }}>Cargando…</div>
-}
-
-export function Btn({ onClick, children, primary, danger, small, disabled, style: sx = {} }) {
-  const base = {
-    display: 'inline-flex', alignItems: 'center', gap: 6, cursor: disabled ? 'not-allowed' : 'pointer',
-    border: '0.5px solid #ccc', borderRadius: 7, fontSize: small ? 12 : 13,
-    padding: small ? '4px 10px' : '7px 14px', fontFamily: 'inherit',
-    opacity: disabled ? .45 : 1, transition: 'background .1s',
-  }
-  const variant = primary
-    ? { background: '#3C3489', color: '#fff', border: 'none' }
-    : danger
-    ? { background: 'none', color: '#A32D2D', borderColor: '#F7C1C1' }
-    : { background: 'none', color: '#111' }
-  return <button onClick={disabled ? undefined : onClick} style={{ ...base, ...variant, ...sx }}>{children}</button>
 }

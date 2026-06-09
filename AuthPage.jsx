@@ -1,10 +1,9 @@
 import { useState } from 'react'
-import { useAuth } from '../lib/AuthContext'
-import { Btn } from '../components/UI'
+import { useAuth } from './AuthContext'
 
 export default function AuthPage() {
   const { signIn, signUp } = useAuth()
-  const [mode, setMode]       = useState('login') // 'login' | 'register'
+  const [mode, setMode]       = useState('login')
   const [email, setEmail]     = useState('')
   const [password, setPass]   = useState('')
   const [name, setName]       = useState('')

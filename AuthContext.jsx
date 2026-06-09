@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase } from './supabase'
 
 const AuthCtx = createContext(null)
 
@@ -48,19 +48,8 @@ export function AuthProvider({ children }) {
     await supabase.auth.signOut()
   }
 
-  async function updateProfile(updates) {
-    if (!user) return
-    const { data } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', user.id)
-      .select()
-      .single()
-    setProfile(data)
-  }
-
   return (
-    <AuthCtx.Provider value={{ user, profile, loading, signIn, signUp, signOut, updateProfile }}>
+    <AuthCtx.Provider value={{ user, profile, loading, signIn, signUp, signOut }}>
       {children}
     </AuthCtx.Provider>
   )

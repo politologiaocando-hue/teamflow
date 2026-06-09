@@ -53,7 +53,3 @@ export const QUADS = {
   'fill-in':  { label: 'Relleno',           sub: 'Bajo impacto · bajo esfuerzo',  bg: '#FAEEDA', bc: '#FAC775', tc: '#854F0B' },
   'avoid':    { label: 'Evitar / delegar',  sub: 'Bajo impacto · alto esfuerzo',  bg: '#FCEBEB', bc: '#F7C1C1', tc: '#A32D2D' },
 }
-
-export function getInitials(name = '') {
-  return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
-}

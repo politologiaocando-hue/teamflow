@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { supabase } from '../lib/supabase'
-import { useAuth } from '../lib/AuthContext'
-import { STATUS, PRIORITY, TAGS } from '../lib/constants'
+import { supabase } from './supabase'
+import { useAuth } from './AuthContext'
+import { STATUS, PRIORITY, TAGS } from './constants'
 import { Btn, FG } from './UI'
 
 const inputStyle = {
@@ -33,13 +33,10 @@ export default function TaskModal({ task, profiles, onSave, onClose }) {
 
   async function save() {
     if (!f.title.trim()) { setError('El título es obligatorio'); return }
-    setSaving(true)
-    setError('')
+    setSaving(true); setError('')
     try {
       if (isNew) {
-        const { data: t, error: e } = await supabase.from('tasks').insert({
-          ...f, created_by: me?.id,
-        }).select().single()
+        const { data: t, error: e } = await supabase.from('tasks').insert({ ...f, created_by: me?.id }).select().single()
         if (e) throw e
         await supabase.from('history').insert({ task_id: t.id, actor_id: me?.id, message: 'Tarea creada' })
       } else {
@@ -53,21 +50,13 @@ export default function TaskModal({ task, profiles, onSave, onClose }) {
           changes.push(`Ingeniero: ${oldE?.full_name} → ${newE?.full_name}`)
         }
         if (old.due_date !== f.due_date)   changes.push(`Fecha: ${old.due_date || '—'} → ${f.due_date || '—'}`)
-        if (old.impact !== f.impact)       changes.push(`Impacto: ${old.impact} → ${f.impact}`)
-        if (old.effort !== f.effort)       changes.push(`Esfuerzo: ${old.effort} → ${f.effort}`)
-        if (!changes.length)               changes.push('Tarea actualizada')
-
+        if (!changes.length) changes.push('Tarea actualizada')
         const { error: e } = await supabase.from('tasks').update(f).eq('id', task.id)
         if (e) throw e
-        await supabase.from('history').insert(
-          changes.map(msg => ({ task_id: task.id, actor_id: me?.id, message: msg }))
-        )
+        await supabase.from('history').insert(changes.map(msg => ({ task_id: task.id, actor_id: me?.id, message: msg })))
       }
-      onSave?.()
-      onClose()
-    } catch (e) {
-      setError(e.message)
-    }
+      onSave?.(); onClose()
+    } catch (e) { setError(e.message) }
     setSaving(false)
   }
 
@@ -78,54 +67,20 @@ export default function TaskModal({ task, profiles, onSave, onClose }) {
           <span style={{ fontSize: 15, fontWeight: 500 }}>{isNew ? 'Nueva tarea' : 'Editar tarea'}</span>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#888' }}>✕</button>
         </div>
-
         <div style={{ padding: '20px 24px' }}>
-          <FG label="Título *">
-            <input style={inputStyle} value={f.title} onChange={e => set('title', e.target.value)} placeholder="Ej: Implementar módulo de autenticación" />
-          </FG>
-          <FG label="Descripción">
-            <textarea style={{ ...inputStyle, height: 80, resize: 'vertical' }} value={f.description} onChange={e => set('description', e.target.value)} placeholder="Contexto, criterios de aceptación, notas…" />
-          </FG>
-
+          <FG label="Título *"><input style={inputStyle} value={f.title} onChange={e => set('title', e.target.value)} placeholder="Ej: Implementar módulo de autenticación" /></FG>
+          <FG label="Descripción"><textarea style={{ ...inputStyle, height: 80, resize: 'vertical' }} value={f.description} onChange={e => set('description', e.target.value)} placeholder="Contexto, criterios de aceptación, notas…" /></FG>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
-            <FG label="Líder responsable" mb={0}>
-              <select style={inputStyle} value={f.leader_id} onChange={e => set('leader_id', e.target.value)}>
-                {leaders.map(l => <option key={l.id} value={l.id}>{l.full_name}</option>)}
-              </select>
-            </FG>
-            <FG label="Ingeniero asignado" mb={0}>
-              <select style={inputStyle} value={f.engineer_id} onChange={e => set('engineer_id', e.target.value)}>
-                {engineers.map(l => <option key={l.id} value={l.id}>{l.full_name}</option>)}
-              </select>
-            </FG>
-            <FG label="Estado" mb={0}>
-              <select style={inputStyle} value={f.status} onChange={e => set('status', e.target.value)}>
-                {Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-              </select>
-            </FG>
-            <FG label="Prioridad" mb={0}>
-              <select style={inputStyle} value={f.priority} onChange={e => set('priority', e.target.value)}>
-                {Object.entries(PRIORITY).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-              </select>
-            </FG>
-            <FG label={`Impacto: ${f.impact}/10`} mb={0}>
-              <input type="range" min={1} max={10} step={1} value={f.impact} onChange={e => set('impact', +e.target.value)} style={{ width: '100%' }} />
-            </FG>
-            <FG label={`Esfuerzo: ${f.effort}/10`} mb={0}>
-              <input type="range" min={1} max={10} step={1} value={f.effort} onChange={e => set('effort', +e.target.value)} style={{ width: '100%' }} />
-            </FG>
-            <FG label="Fecha compromiso" mb={0}>
-              <input type="date" style={inputStyle} value={f.due_date} onChange={e => set('due_date', e.target.value)} />
-            </FG>
-            <FG label="Etiqueta" mb={0}>
-              <select style={inputStyle} value={f.tag} onChange={e => set('tag', e.target.value)}>
-                {TAGS.map(t => <option key={t}>{t}</option>)}
-              </select>
-            </FG>
+            <FG label="Líder responsable" mb={0}><select style={inputStyle} value={f.leader_id} onChange={e => set('leader_id', e.target.value)}>{leaders.map(l => <option key={l.id} value={l.id}>{l.full_name}</option>)}</select></FG>
+            <FG label="Ingeniero asignado" mb={0}><select style={inputStyle} value={f.engineer_id} onChange={e => set('engineer_id', e.target.value)}>{engineers.map(l => <option key={l.id} value={l.id}>{l.full_name}</option>)}</select></FG>
+            <FG label="Estado" mb={0}><select style={inputStyle} value={f.status} onChange={e => set('status', e.target.value)}>{Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select></FG>
+            <FG label="Prioridad" mb={0}><select style={inputStyle} value={f.priority} onChange={e => set('priority', e.target.value)}>{Object.entries(PRIORITY).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select></FG>
+            <FG label={`Impacto: ${f.impact}/10`} mb={0}><input type="range" min={1} max={10} step={1} value={f.impact} onChange={e => set('impact', +e.target.value)} style={{ width: '100%' }} /></FG>
+            <FG label={`Esfuerzo: ${f.effort}/10`} mb={0}><input type="range" min={1} max={10} step={1} value={f.effort} onChange={e => set('effort', +e.target.value)} style={{ width: '100%' }} /></FG>
+            <FG label="Fecha compromiso" mb={0}><input type="date" style={inputStyle} value={f.due_date} onChange={e => set('due_date', e.target.value)} /></FG>
+            <FG label="Etiqueta" mb={0}><select style={inputStyle} value={f.tag} onChange={e => set('tag', e.target.value)}>{TAGS.map(t => <option key={t}>{t}</option>)}</select></FG>
           </div>
-
           {error && <div style={{ background: '#FCEBEB', color: '#A32D2D', borderRadius: 8, padding: '10px 12px', fontSize: 13, marginBottom: 14 }}>{error}</div>}
-
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <Btn onClick={onClose}>Cancelar</Btn>
             <Btn primary onClick={save} disabled={saving}>{saving ? 'Guardando…' : 'Guardar tarea'}</Btn>

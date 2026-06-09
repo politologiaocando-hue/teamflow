@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../lib/supabase'
-import { useAuth } from '../lib/AuthContext'
+import { supabase } from './supabase'
+import { useAuth } from './AuthContext'
 import { Avatar, Badge, PriorityDot, Btn } from './UI'
-import { STATUS, PRIORITY, fmtDate, fmtTime, isOverdue } from '../lib/constants'
+import { STATUS, PRIORITY, fmtDate, fmtTime, isOverdue } from './constants'
 
 export default function TaskPanel({ taskId, profiles, onClose, onUpdated, onDeleted }) {
   const { profile: me } = useAuth()
@@ -21,14 +21,11 @@ export default function TaskPanel({ taskId, profiles, onClose, onUpdated, onDele
       supabase.from('comments').select('*, author:profiles(*)').eq('task_id', taskId).order('created_at'),
       supabase.from('history').select('*, actor:profiles(*)').eq('task_id', taskId).order('created_at', { ascending: false }),
     ])
-    setTask(t)
-    setComments(c || [])
-    setHistory(h || [])
+    setTask(t); setComments(c || []); setHistory(h || [])
   }
 
   useEffect(() => { load() }, [taskId])
 
-  // Realtime for this task
   useEffect(() => {
     const ch = supabase.channel(`task-${taskId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'comments', filter: `task_id=eq.${taskId}` }, () => load())
@@ -44,8 +41,7 @@ export default function TaskPanel({ taskId, profiles, onClose, onUpdated, onDele
     const newLabel = STATUS[newStatus]?.label
     await supabase.from('tasks').update({ status: newStatus }).eq('id', taskId)
     await supabase.from('history').insert({ task_id: taskId, actor_id: me.id, message: `Estado: ${oldLabel} → ${newLabel}` })
-    load()
-    onUpdated?.()
+    load(); onUpdated?.()
   }
 
   async function addComment() {
@@ -54,16 +50,13 @@ export default function TaskPanel({ taskId, profiles, onClose, onUpdated, onDele
     setSaving(true)
     await supabase.from('comments').insert({ task_id: taskId, author_id: me.id, body: text })
     await supabase.from('history').insert({ task_id: taskId, actor_id: me.id, message: `Comentó: "${text.substring(0, 60)}${text.length > 60 ? '…' : ''}"` })
-    setBody('')
-    setSaving(false)
-    load()
+    setBody(''); setSaving(false); load()
   }
 
   async function deleteTask() {
     if (!confirm('¿Eliminar esta tarea?')) return
     await supabase.from('tasks').delete().eq('id', taskId)
-    onDeleted?.()
-    onClose()
+    onDeleted?.(); onClose()
   }
 
   if (!task) return (
@@ -79,11 +72,7 @@ export default function TaskPanel({ taskId, profiles, onClose, onUpdated, onDele
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.42)', zIndex: 200, display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end' }} onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{
-        width: 480, height: '100%', background: '#fff', borderLeft: '0.5px solid #e0e0e0',
-        display: 'flex', flexDirection: 'column', boxShadow: '-8px 0 24px rgba(0,0,0,.08)',
-      }}>
-        {/* Header */}
+      <div onClick={e => e.stopPropagation()} style={{ width: 480, height: '100%', background: '#fff', borderLeft: '0.5px solid #eee', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '16px 20px', borderBottom: '0.5px solid #eee', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
           <PriorityDot priority={task.priority} />
           <div style={{ flex: 1 }}>
@@ -93,7 +82,6 @@ export default function TaskPanel({ taskId, profiles, onClose, onUpdated, onDele
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#888', fontSize: 18, padding: 4 }}>✕</button>
         </div>
 
-        {/* Meta */}
         <div style={{ padding: '14px 20px', borderBottom: '0.5px solid #eee', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div>
             <div style={{ fontSize: 11, color: '#888', marginBottom: 5 }}>Estado</div>
@@ -109,17 +97,11 @@ export default function TaskPanel({ taskId, profiles, onClose, onUpdated, onDele
           </div>
           <div>
             <div style={{ fontSize: 11, color: '#888', marginBottom: 5 }}>Líder</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {leader && <Avatar profile={leader} size={22} />}
-              <span style={{ fontSize: 13 }}>{leader?.full_name || '—'}</span>
-            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{leader && <Avatar profile={leader} size={22} />}<span style={{ fontSize: 13 }}>{leader?.full_name || '—'}</span></div>
           </div>
           <div>
             <div style={{ fontSize: 11, color: '#888', marginBottom: 5 }}>Ingeniero</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {engineer && <Avatar profile={engineer} size={22} />}
-              <span style={{ fontSize: 13 }}>{engineer?.full_name || '—'}</span>
-            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{engineer && <Avatar profile={engineer} size={22} />}<span style={{ fontSize: 13 }}>{engineer?.full_name || '—'}</span></div>
           </div>
           <div>
             <div style={{ fontSize: 11, color: '#888', marginBottom: 5 }}>Fecha compromiso</div>
@@ -138,21 +120,14 @@ export default function TaskPanel({ taskId, profiles, onClose, onUpdated, onDele
           </div>
         )}
 
-        {/* Tabs */}
         <div style={{ display: 'flex', borderBottom: '0.5px solid #eee' }}>
           {['comments', 'history'].map(t => (
-            <button key={t} onClick={() => setTab(t)} style={{
-              flex: 1, padding: '10px 0', background: 'none', border: 'none',
-              borderBottom: tab === t ? '2px solid #3C3489' : '2px solid transparent',
-              color: tab === t ? '#3C3489' : '#888', fontWeight: tab === t ? 500 : 400,
-              fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
-            }}>
+            <button key={t} onClick={() => setTab(t)} style={{ flex: 1, padding: '10px 0', background: 'none', border: 'none', borderBottom: tab === t ? '2px solid #3C3489' : '2px solid transparent', color: tab === t ? '#3C3489' : '#888', fontWeight: tab === t ? 500 : 400, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
               {t === 'comments' ? `Comentarios (${comments.length})` : `Historial (${history.length})`}
             </button>
           ))}
         </div>
 
-        {/* Content */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
           {tab === 'comments' ? (
             <>
@@ -185,10 +160,9 @@ export default function TaskPanel({ taskId, profiles, onClose, onUpdated, onDele
           )}
         </div>
 
-        {/* Comment box */}
         {tab === 'comments' && (
           <div style={{ padding: '12px 20px', borderTop: '0.5px solid #eee', background: '#fff' }}>
-            <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Escribe un comentario… (Cmd+Enter para enviar)" rows={3}
+            <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Escribe un comentario…" rows={3}
               onKeyDown={e => { if (e.key === 'Enter' && e.metaKey) addComment() }}
               style={{ width: '100%', fontSize: 13, padding: '8px 10px', borderRadius: 7, border: '0.5px solid #ddd', background: '#fafafa', color: '#111', resize: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
@@ -197,7 +171,6 @@ export default function TaskPanel({ taskId, profiles, onClose, onUpdated, onDele
           </div>
         )}
 
-        {/* Delete */}
         {(isLeader || me?.id === task.created_by) && (
           <div style={{ padding: '10px 20px', borderTop: '0.5px solid #eee', display: 'flex', justifyContent: 'flex-end' }}>
             <Btn danger small onClick={deleteTask}>Eliminar tarea</Btn>
