@@ -8,9 +8,9 @@ import UsersAdmin from './UsersAdmin'
 import WeeklyReport from './WeeklyReport'
 import { STATUS, PRIORITY, QUADS, fmtDate, isOverdue, quadrant } from './constants'
 
-function ListView({ tasks, profiles, onOpen, filterStatus, filterLeader, setFilterStatus, setFilterLeader }) {
+function ListView({ tasks, profiles, onOpen, filterStatus, filterLeader, filterEngineer, setFilterStatus, setFilterLeader, setFilterEngineer }) {
   const byId = id => profiles.find(p => p.id === id)
-  const ft = tasks.filter(t => (filterStatus === 'all' || t.status === filterStatus) && (filterLeader === 'all' || t.leader_id === filterLeader))
+  const ft = tasks.filter(t => (filterStatus === 'all' || t.status === filterStatus) && (filterLeader === 'all' || t.leader_id === filterLeader) && (filterEngineer === 'all' || t.engineer_id === filterEngineer))
   const done = tasks.filter(t => t.status === 'done').length
   const leaders = profiles.filter(p => p.role === 'leader')
   const FLAG = { Chile: '🇨🇱', Colombia: '🇨🇴' }
@@ -55,15 +55,15 @@ function ListView({ tasks, profiles, onOpen, filterStatus, filterLeader, setFilt
     </div>
   </>)
 }
-function KanbanView({ tasks, profiles, onOpen, filterLeader }) {
+function KanbanView({ tasks, profiles, onOpen, filterLeader, filterEngineer }) {
   const byId = id => profiles.find(p => p.id === id)
-  const ft = tasks.filter(t => filterLeader === 'all' || t.leader_id === filterLeader)
+  const ft = tasks.filter(t => (filterLeader === 'all' || t.leader_id === filterLeader) && (filterEngineer === 'all' || t.engineer_id === filterEngineer))
   const cols = [{ key: 'todo', bg: '#f7f7f9' }, { key: 'progress', bg: '#EBF4FD' }, { key: 'review', bg: '#FEF6EA' }, { key: 'blocked', bg: '#FEF0F0' }, { key: 'done', bg: '#F0F7E8' }]
   const FLAG = { Chile: '🇨🇱', Colombia: '🇨🇴' }
   return (<div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 8, minHeight: 440 }}>{cols.map(col => { const ct = ft.filter(t => t.status === col.key); return (<div key={col.key} style={{ minWidth: 190, flex: 1, background: col.bg, borderRadius: 10, padding: 10, border: '0.5px solid #eee' }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}><span style={{ fontSize: 12, fontWeight: 500, color: '#666' }}>{STATUS[col.key]?.label}</span><span style={{ fontSize: 11, background: '#fff', padding: '1px 7px', borderRadius: 10, color: '#aaa', border: '0.5px solid #eee' }}>{ct.length}</span></div>{ct.map(t => { const e = byId(t.engineer_id), over = isOverdue(t); return (<div key={t.id} onClick={() => onOpen(t.id)} style={{ background: '#fff', border: '0.5px solid #eee', borderRadius: 8, padding: 10, marginBottom: 8, cursor: 'pointer' }} onMouseEnter={ev => ev.currentTarget.style.borderColor = '#ccc'} onMouseLeave={ev => ev.currentTarget.style.borderColor = '#eee'}><div style={{ display: 'flex', justifyContent: 'space-between', gap: 4, marginBottom: 4 }}><span style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.4 }}>{t.title}</span><PriorityDot priority={t.priority} /></div><div style={{ fontSize: 11, color: '#aaa', marginBottom: 6 }}>{FLAG[t.country] || ''} {t.tag}</div><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>{e ? <Avatar profile={e} size={20} /> : <span />}<div>{t._comment_count > 0 && <span style={{ fontSize: 10, color: '#185FA5', marginRight: 6 }}>💬{t._comment_count}</span>}<span style={{ fontSize: 10, color: over ? '#A32D2D' : '#aaa' }}>{t.due_date ? new Date(t.due_date).toLocaleDateString('es-CL', { day: '2-digit', month: 'short' }) : '—'}</span></div></div></div>) })}</div>) })}</div>)
 }
-function MatrixView({ tasks, onOpen, filterLeader }) {
-  const ft = tasks.filter(t => filterLeader === 'all' || t.leader_id === filterLeader)
+function MatrixView({ tasks, onOpen, filterLeader, filterEngineer }) {
+  const ft = tasks.filter(t => (filterLeader === 'all' || t.leader_id === filterLeader) && (filterEngineer === 'all' || t.engineer_id === filterEngineer))
   return (<><p style={{ fontSize: 13, color: '#888', marginBottom: 14 }}>Clasificación automática.</p><div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>{['do-first', 'plan', 'fill-in', 'avoid'].map(k => { const info = QUADS[k], qt = ft.filter(t => quadrant(t) === k); return (<div key={k} style={{ background: info.bg, border: `0.5px solid ${info.bc}`, borderRadius: 10, padding: 14, minHeight: 150 }}><div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}><div><div style={{ fontSize: 13, fontWeight: 500, color: info.tc }}>{info.label}</div><div style={{ fontSize: 11, color: info.tc, opacity: .8 }}>{info.sub}</div></div><span style={{ fontSize: 11, background: 'rgba(255,255,255,.6)', padding: '2px 8px', borderRadius: 10, color: info.tc }}>{qt.length}</span></div>{qt.map(t => (<div key={t.id} onClick={() => onOpen(t.id)} style={{ background: 'rgba(255,255,255,.75)', border: `0.5px solid ${info.bc}`, borderRadius: 6, padding: '7px 10px', marginBottom: 6, cursor: 'pointer' }} onMouseEnter={ev => ev.currentTarget.style.background = 'rgba(255,255,255,.95)'} onMouseLeave={ev => ev.currentTarget.style.background = 'rgba(255,255,255,.75)'}><div style={{ fontSize: 12, fontWeight: 500 }}>{t.title}</div><div style={{ display: 'flex', gap: 8, marginTop: 4, alignItems: 'center' }}><span style={{ fontSize: 10, color: '#666' }}>I:{t.impact} E:{t.effort}</span><Badge status={t.status} /></div></div>))}</div>) })}</div></>)
 }
 function TeamView({ tasks, profiles }) {
@@ -78,6 +78,7 @@ export default function AppPage() {
   const [view, setView] = useState('list')
   const [filterStatus, setFilterStatus] = useState('all')
   const [filterLeader, setFilterLeader] = useState('all')
+  const [filterEngineer, setFilterEngineer] = useState('all')
   const [openTaskId, setOpenTaskId] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const loadAll = useCallback(async () => {
@@ -87,6 +88,12 @@ export default function AppPage() {
     setProfiles(p || []); setLoading(false)
   }, [])
   useEffect(() => { loadAll() }, [loadAll])
+
+  // Auto-filter: ingenieros ven sus propias tareas por defecto
+  useEffect(() => {
+    if (me?.role === 'engineer' && me?.id) setFilterEngineer(me.id)
+  }, [me])
+
   useEffect(() => {
     const ch = supabase.channel('app-realtime').on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, loadAll).on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, loadAll).subscribe()
     return () => supabase.removeChannel(ch)
@@ -129,14 +136,17 @@ export default function AppPage() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ background: '#fff', borderBottom: '0.5px solid #eee', padding: '0 22px', height: 50, display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: 15, fontWeight: 500, flex: 1 }}>{viewTitle[view]}</span>
-          {view !== 'team' && view !== 'admin' && view !== 'report' && (<select value={filterLeader} onChange={e => setFilterLeader(e.target.value)} style={{ padding: '5px 10px', fontSize: 13, border: '0.5px solid #ddd', borderRadius: 7, background: '#fff', color: '#111', cursor: 'pointer' }}><option value="all">Todos los líderes</option>{leaders.map(l => <option key={l.id} value={l.id}>{l.full_name}</option>)}</select>)}
+          {view !== 'team' && view !== 'admin' && view !== 'report' && (<>
+            {isLeader && <select value={filterLeader} onChange={e => setFilterLeader(e.target.value)} style={{ padding: '5px 10px', fontSize: 13, border: '0.5px solid #ddd', borderRadius: 7, background: '#fff', color: '#111', cursor: 'pointer' }}><option value="all">Todos los líderes</option>{leaders.map(l => <option key={l.id} value={l.id}>{l.full_name}</option>)}</select>}
+            <select value={filterEngineer} onChange={e => setFilterEngineer(e.target.value)} style={{ padding: '5px 10px', fontSize: 13, border: '0.5px solid #ddd', borderRadius: 7, background: '#fff', color: '#111', cursor: 'pointer' }}><option value="all">Todos los ingenieros</option>{engineers.map(e => <option key={e.id} value={e.id}>{e.full_name}</option>)}</select>
+          </>)}
           {isLeader && view !== 'admin' && view !== 'report' && (<button onClick={() => setShowForm(true)} style={{ background: '#3C3489', color: '#fff', border: 'none', borderRadius: 7, padding: '7px 14px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}>+ Nueva tarea</button>)}
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '18px 22px' }}>
           {loading ? <Spinner /> : (<>
-            {view === 'list'   && <ListView tasks={tasks} profiles={profiles} onOpen={setOpenTaskId} filterStatus={filterStatus} filterLeader={filterLeader} setFilterStatus={setFilterStatus} setFilterLeader={setFilterLeader} />}
-            {view === 'kanban' && <KanbanView tasks={tasks} profiles={profiles} onOpen={setOpenTaskId} filterLeader={filterLeader} />}
-            {view === 'matrix' && <MatrixView tasks={tasks} onOpen={setOpenTaskId} filterLeader={filterLeader} />}
+            {view === 'list'   && <ListView tasks={tasks} profiles={profiles} onOpen={setOpenTaskId} filterStatus={filterStatus} filterLeader={filterLeader} filterEngineer={filterEngineer} setFilterStatus={setFilterStatus} setFilterLeader={setFilterLeader} setFilterEngineer={setFilterEngineer} />}
+            {view === 'kanban' && <KanbanView tasks={tasks} profiles={profiles} onOpen={setOpenTaskId} filterLeader={filterLeader} filterEngineer={filterEngineer} />}
+            {view === 'matrix' && <MatrixView tasks={tasks} onOpen={setOpenTaskId} filterLeader={filterLeader} filterEngineer={filterEngineer} />}
             {view === 'team'   && <TeamView tasks={tasks} profiles={profiles} />}
             {view === 'report' && <WeeklyReport />}
             {view === 'admin'  && <UsersAdmin />}
