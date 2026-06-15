@@ -1,104 +1,78 @@
 import { useState } from 'react'
-import { useAuth } from './AuthContext'
+import { supabase } from './supabase'
+
+const inp = { width:'100%', padding:'10px 12px', fontSize:14, border:'1px solid #ddd', borderRadius:8, background:'#fafafa', color:'#111', fontFamily:'inherit', boxSizing:'border-box', marginBottom:12 }
+
+const ROLES = [
+  { value:'manager',  label:'🏢 Gerente / Director',  desc:'Asigna tareas a líderes de equipo' },
+  { value:'leader',   label:'👤 Líder de equipo',  desc:'Gestiona y delega tareas a ingenieros' },
+  { value:'engineer', label:'⚙️ Ingeniero / Ejecutor', desc:'Ejecuta tareas asignadas' },
+]
 
 export default function AuthPage() {
-  const { signIn, signUp } = useAuth()
-  const [mode, setMode]       = useState('login')
-  const [email, setEmail]     = useState('')
-  const [password, setPass]   = useState('')
-  const [name, setName]       = useState('')
-  const [role, setRole]       = useState('engineer')
-  const [error, setError]     = useState('')
-  const [loading, setLoading] = useState(false)
-  const [done, setDone]       = useState(false)
+  const[tab,setTab]=useState('login')
+  const[email,setEmail]=useState('')
+  const[pass,setPass]=useState('')
+  const[name,setName]=useState('')
+  const[role,setRole]=useState('engineer')
+  const[error,setError]=useState('')
+  const[loading,setLoading]=useState(false)
 
-  const inputStyle = {
-    width: '100%', padding: '9px 12px', fontSize: 14, border: '0.5px solid #ddd',
-    borderRadius: 8, background: '#fafafa', color: '#111', fontFamily: 'inherit', boxSizing: 'border-box',
-  }
-
-  async function submit(e) {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
-    if (mode === 'login') {
-      const { error } = await signIn(email, password)
-      if (error) setError(error.message)
-    } else {
-      const { error } = await signUp(email, password, name, role)
-      if (error) setError(error.message)
-      else setDone(true)
-    }
+  async function login(e){
+    e.preventDefault();setError('');setLoading(true)
+    const{error}=await supabase.auth.signInWithPassword({email,password:pass})
+    if(error)setError(error.message)
     setLoading(false)
   }
 
-  return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f4f9', padding: 20 }}>
-      <div style={{ width: '100%', maxWidth: 400, background: '#fff', borderRadius: 14, border: '0.5px solid #e0e0e0', padding: '36px 32px' }}>
-        <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <div style={{ fontSize: 32, marginBottom: 6 }}>⬡</div>
-          <h1 style={{ fontSize: 22, fontWeight: 600, margin: 0 }}>TeamFlow</h1>
-          <p style={{ fontSize: 13, color: '#888', margin: '4px 0 0' }}>
-            {mode === 'login' ? 'Inicia sesión en tu equipo' : 'Crea tu cuenta'}
-          </p>
+  async function register(e){
+    e.preventDefault();setError('');setLoading(true)
+    const{error}=await supabase.auth.signUp({email,password:pass,options:{data:{full_name:name,role}}})
+    if(error)setError(error.message)
+    else setTab('login')
+    setLoading(false)
+  }
+
+  return(
+    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'#f5f4f9',fontFamily:'system-ui,sans-serif'}}>
+      <div style={{background:'#fff',borderRadius:14,border:'0.5px solid #eee',padding:'32px 36px',width:'100%',maxWidth:400}}>
+        <div style={{textAlign:'center',marginBottom:28}}>
+          <div style={{fontSize:28,marginBottom:6}}>⬡</div>
+          <div style={{fontSize:20,fontWeight:700,color:'#3C3489'}}>TeamFlow</div>
+          <div style={{fontSize:12,color:'#aaa',marginTop:4}}>Gestión de equipo</div>
         </div>
-
-        {done ? (
-          <div style={{ textAlign: 'center', color: '#3B6D11', background: '#EAF3DE', borderRadius: 8, padding: '16px 12px', fontSize: 14 }}>
-            ¡Cuenta creada! Revisa tu correo para confirmar y luego inicia sesión.
-            <br />
-            <button onClick={() => { setMode('login'); setDone(false) }} style={{ marginTop: 12, color: '#3C3489', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13 }}>
-              Ir al login →
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={submit}>
-            {mode === 'register' && (
-              <div style={{ marginBottom: 14 }}>
-                <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 5, fontWeight: 500 }}>Nombre completo</label>
-                <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="Ana Martínez" required />
-              </div>
-            )}
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 5, fontWeight: 500 }}>Correo electrónico</label>
-              <input style={inputStyle} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@empresa.com" required />
-            </div>
-            <div style={{ marginBottom: mode === 'register' ? 14 : 20 }}>
-              <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 5, fontWeight: 500 }}>Contraseña</label>
-              <input style={inputStyle} type="password" value={password} onChange={e => setPass(e.target.value)} placeholder="Mínimo 6 caracteres" required minLength={6} />
-            </div>
-            {mode === 'register' && (
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ fontSize: 12, color: '#666', display: 'block', marginBottom: 5, fontWeight: 500 }}>Rol en el equipo</label>
-                <select value={role} onChange={e => setRole(e.target.value)} style={{ ...inputStyle, background: '#fafafa' }}>
-                  <option value="leader">Líder</option>
-                  <option value="engineer">Ingeniero</option>
-                </select>
-              </div>
-            )}
-            {error && (
-              <div style={{ background: '#FCEBEB', color: '#A32D2D', borderRadius: 8, padding: '10px 12px', fontSize: 13, marginBottom: 14 }}>
-                {error}
-              </div>
-            )}
-            <button type="submit" disabled={loading} style={{
-              width: '100%', padding: '10px 0', background: '#3C3489', color: '#fff',
-              border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 500,
-              cursor: loading ? 'wait' : 'pointer', fontFamily: 'inherit',
-            }}>
-              {loading ? 'Procesando…' : mode === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}
-            </button>
+        <div style={{display:'flex',borderBottom:'1px solid #eee',marginBottom:24}}>
+          {[['login','Iniciar sesión'],['register','Registrarse']].map(([k,l])=>(
+            <button key={k} onClick={()=>setTab(k)} style={{flex:1,padding:'8px 0',background:'none',border:'none',borderBottom:tab===k?'2px solid #3C3489':'2px solid transparent',color:tab===k?'#3C3489':'#888',fontWeight:tab===k?600:400,fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>{l}</button>
+          ))}
+        </div>
+        {tab==='login'?(
+          <form onSubmit={login}>
+            <input style={inp} type="email" placeholder="Correo electrónico" value={email} onChange={e=>setEmail(e.target.value)} required/>
+            <input style={inp} type="password" placeholder="Contraseña" value={pass} onChange={e=>setPass(e.target.value)} required/>
+            {error&&<div style={{color:'#A32D2D',fontSize:12,marginBottom:12,background:'#FCEBEB',padding:'8px 10px',borderRadius:6}}>{error}</div>}
+            <button type="submit" disabled={loading} style={{width:'100%',padding:'11px',background:'#3C3489',color:'#fff',border:'none',borderRadius:8,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{loading?'Entrando…':'Iniciar sesión'}</button>
           </form>
-        )}
-
-        {!done && (
-          <div style={{ textAlign: 'center', marginTop: 20, fontSize: 13, color: '#888' }}>
-            {mode === 'login' ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'}
-            {' '}
-            <button onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError('') }} style={{ color: '#3C3489', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500 }}>
-              {mode === 'login' ? 'Regístrate' : 'Inicia sesión'}
-            </button>
-          </div>
+        ):(
+          <form onSubmit={register}>
+            <input style={inp} type="text" placeholder="Nombre completo" value={name} onChange={e=>setName(e.target.value)} required/>
+            <input style={inp} type="email" placeholder="Correo electrónico" value={email} onChange={e=>setEmail(e.target.value)} required/>
+            <input style={inp} type="password" placeholder="Contraseña (mín. 6 caracteres)" value={pass} onChange={e=>setPass(e.target.value)} required/>
+            <div style={{marginBottom:16}}>
+              <div style={{fontSize:12,color:'#888',marginBottom:8,fontWeight:500}}>Rol en el equipo</div>
+              {ROLES.map(r=>(
+                <label key={r.value} style={{display:'flex',alignItems:'flex-start',gap:10,padding:'10px 12px',border:`1.5px solid ${role===r.value?'#3C3489':'#eee'}`,borderRadius:8,marginBottom:8,cursor:'pointer',background:role===r.value?'#EEEDFE':'#fff'}}>
+                  <input type="radio" name="role" value={r.value} checked={role===r.value} onChange={()=>setRole(r.value)} style={{marginTop:2,accentColor:'#3C3489'}}/>
+                  <div>
+                    <div style={{fontSize:13,fontWeight:500,color:role===r.value?'#3C3489':'#111'}}>{r.label}</div>
+                    <div style={{fontSize:11,color:'#aaa',marginTop:2}}>{r.desc}</div>
+                  </div>
+                </label>
+              ))}
+            </div>
+            {error&&<div style={{color:'#A32D2D',fontSize:12,marginBottom:12,background:'#FCEBEB',padding:'8px 10px',borderRadius:6}}>{error}</div>}
+            <button type="submit" disabled={loading} style={{width:'100%',padding:'11px',background:'#3C3489',color:'#fff',border:'none',borderRadius:8,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>{loading?'Registrando…':'Crear cuenta'}</button>
+          </form>
         )}
       </div>
     </div>
