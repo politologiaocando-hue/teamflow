@@ -6,17 +6,19 @@ import { Btn, FG } from './UI'
 
 const inp = { width:'100%', padding:'8px 10px', fontSize:13, border:'0.5px solid #ddd', borderRadius:7, background:'#fafafa', color:'#111', fontFamily:'inherit', boxSizing:'border-box' }
 
-export default function TaskModal({ task, profiles, onSave, onClose }) {
-  const { profile: me } = useAuth()
-  const isNew = !task?.id
-  const leaders   = profiles.filter(p => p.role === 'leader')
+export default function TaskModal({ task, profiles, me: meProp, onSave, onClose }) {
+  const { profile: meCtx } = useAuth()
+  const me = meProp || meCtx
+  const isNew     = !task?.id
+  const isEngineer = me?.role === 'engineer'
+  const leaders   = profiles.filter(p => p.role === 'leader' || p.role === 'manager')
   const engineers = profiles.filter(p => p.role === 'engineer')
 
   const [f, setF] = useState({
     title:          task?.title          || '',
     description:    task?.description    || '',
-    leader_id:      task?.leader_id      || leaders[0]?.id || '',
-    engineer_id:    task?.engineer_id    || '',
+    leader_id:      task?.leader_id      || (isEngineer ? '' : leaders[0]?.id || ''),
+    engineer_id:    task?.engineer_id    || (isEngineer ? me?.id || '' : ''),
     status:         task?.status         || 'todo',
     priority:       task?.priority       || 'medium',
     impact:         task?.impact         || 5,
@@ -89,12 +91,18 @@ export default function TaskModal({ task, profiles, onSave, onClose }) {
               </select>
             </FG>
 
-            <FG label="Ingeniero asignado" mb={0}>
-              <select style={inp} value={f.engineer_id} onChange={e => set('engineer_id', e.target.value)}>
-                <option value="">— Sin asignar —</option>
-                {engineers.map(l => <option key={l.id} value={l.id}>{l.full_name}</option>)}
-              </select>
-            </FG>
+            {isEngineer ? (
+              <FG label="Ingeniero asignado" mb={0}>
+                <input style={{ ...inp, background:'#f0f0f0', color:'#666' }} value={me?.full_name || ''} readOnly />
+              </FG>
+            ) : (
+              <FG label="Ingeniero asignado" mb={0}>
+                <select style={inp} value={f.engineer_id} onChange={e => set('engineer_id', e.target.value)}>
+                  <option value="">— Sin asignar —</option>
+                  {engineers.map(l => <option key={l.id} value={l.id}>{l.full_name}</option>)}
+                </select>
+              </FG>
+            )}
 
             <FG label="Estado" mb={0}>
               <select style={inp} value={f.status} onChange={e => set('status', e.target.value)}>
