@@ -10,19 +10,38 @@ import Metrics from './Metrics'
 import { STATUS, PRIORITY, QUADS, fmtDate, isOverdue, quadrant } from './constants'
 
 function getWeekRange(offset=0){const now=new Date(),day=now.getDay(),diff=(day===0?-6:1-day)+offset*7,mon=new Date(now);mon.setDate(now.getDate()+diff);mon.setHours(0,0,0,0);const sun=new Date(mon);sun.setDate(mon.getDate()+6);sun.setHours(23,59,59,999);return{from:mon,to:sun}}
-function fmtWeekLabel(offset){if(offset===null)return'Todas las semanas';const{from,to}=getWeekRange(offset),fmt=d=>d.toLocaleDateString('es-CL',{day:'2-digit',month:'short'});return offset===0?'Esta semana':offset<0?`${fmt(from)} – ${fmt(to)}`:`${fmt(from)} – ${fmt(to)}`}
+function fmtWeekLabel(offset){if(offset===null)return'Todas las semanas';const{from,to}=getWeekRange(offset),fmt=d=>d.toLocaleDateString('es-CL',{day:'2-digit',month:'short'});return offset===0?'Esta semana':`${fmt(from)} – ${fmt(to)}`}
 function taskInWeek(t,offset){if(offset===null)return true;const{from,to}=getWeekRange(offset),due=t.due_date?new Date(t.due_date):null,active=t.status!=='done';if(due&&due>=from&&due<=to)return true;if(active&&due&&due<from)return true;if(active&&!due)return true;return false}
+
+const STATUS_COLORS={
+  todo:    {bg:'#f5f5f5',active:'#888780',label:'Por hacer'},
+  progress:{bg:'#E6F1FB',active:'#185FA5',label:'En progreso'},
+  review:  {bg:'#FAEEDA',active:'#854F0B',label:'En revisión'},
+  done:    {bg:'#EAF3DE',active:'#3B6D11',label:'Completada'},
+  blocked: {bg:'#FCEBEB',active:'#A32D2D',label:'Bloqueada'},
+}
+
+function StatusChips({selected,onChange}){
+  const toggle=key=>{const next=selected.includes(key)?selected.filter(s=>s!==key):[...selected,key];onChange(next)}
+  const allSelected=selected.length===0
+  return(
+    <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
+      <button onClick={()=>onChange([])} style={{padding:'4px 10px',fontSize:12,borderRadius:20,cursor:'pointer',fontFamily:'inherit',border:`1.5px solid ${allSelected?'#3C3489':'#ddd'}`,background:allSelected?'#3C3489':'#fff',color:allSelected?'#fff':'#888',fontWeight:allSelected?600:400}}>Todos</button>
+      {Object.entries(STATUS_COLORS).map(([key,s])=>{const on=selected.includes(key);return(<button key={key} onClick={()=>toggle(key)} style={{padding:'4px 10px',fontSize:12,borderRadius:20,cursor:'pointer',fontFamily:'inherit',border:`1.5px solid ${on?s.active:'#ddd'}`,background:on?s.bg:'#fff',color:on?s.active:'#888',fontWeight:on?600:400}}>{s.label}</button>)})}
+    </div>
+  )
+}
 
 function ListView({tasks,profiles,onOpen,filterStatus,filterLeader,filterEngineer,filterMeeting,setFilterStatus,setFilterLeader,setFilterEngineer,setFilterMeeting}){
   const byId=id=>profiles.find(p=>p.id===id)
-  const ft=tasks.filter(t=>(filterStatus==='all'||t.status===filterStatus)&&(filterLeader==='all'||t.leader_id===filterLeader)&&(filterEngineer==='all'||t.engineer_id===filterEngineer)&&(filterMeeting==='all'||(t.meeting_type||'').toLowerCase().includes(filterMeeting.toLowerCase())))
+  const ft=tasks.filter(t=>(filterStatus.length===0||filterStatus.includes(t.status))&&(filterLeader==='all'||t.leader_id===filterLeader)&&(filterEngineer==='all'||t.engineer_id===filterEngineer)&&(filterMeeting==='all'||(t.meeting_type||'').toLowerCase().includes(filterMeeting.toLowerCase())))
   const done=tasks.filter(t=>t.status==='done').length
   const leaders=profiles.filter(p=>p.role==='leader'||p.role==='manager')
   const FLAG={Chile:'🇨🇱',Colombia:'🇨🇴'}
   const meetingTypes=[...new Set(tasks.map(t=>t.meeting_type).filter(Boolean))].sort()
-  const sel=(v,fn,ch)=><select value={v} onChange={e=>fn(e.target.value)} style={{padding:'5px 10px',fontSize:13,border:'0.5px solid #ddd',borderRadius:7,background:'#fff',color:'#111',cursor:'pointer'}}>{ch}</select>
+  const sel=(v,fn,ch)=><select value={v} onChange={e=>fn(e.target.value)} style={{padding:'5px 8px',fontSize:12,border:'0.5px solid #ddd',borderRadius:7,background:'#fff',color:'#111',cursor:'pointer'}}>{ch}</select>
   return(<>
-    <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10,marginBottom:18}}>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10,marginBottom:14}}>
       {[{label:'Total tareas',val:tasks.length},{label:'En progreso',val:tasks.filter(t=>t.status==='progress').length},{label:'Bloqueadas',val:tasks.filter(t=>t.status==='blocked').length,danger:true},{label:'Completadas',val:done,bar:tasks.length?Math.round(done/tasks.length*100):0}].map(m=>(
         <div key={m.label} style={{background:'#f7f7f9',borderRadius:8,padding:'12px 14px',border:'0.5px solid #eee'}}>
           <div style={{fontSize:11,color:'#888',marginBottom:4}}>{m.label}</div>
@@ -31,8 +50,8 @@ function ListView({tasks,profiles,onOpen,filterStatus,filterLeader,filterEnginee
         </div>
       ))}
     </div>
+    <div style={{marginBottom:10}}><StatusChips selected={filterStatus} onChange={setFilterStatus}/></div>
     <div style={{display:'flex',gap:8,marginBottom:14,flexWrap:'wrap',alignItems:'center'}}>
-      {sel(filterStatus,setFilterStatus,<><option value="all">Todos los estados</option>{Object.entries(STATUS).map(([k,v])=><option key={k} value={k}>{v.label}</option>)}</>)}
       {sel(filterLeader,setFilterLeader,<><option value="all">Todos los líderes</option>{leaders.map(l=><option key={l.id} value={l.id}>{l.full_name}</option>)}</>)}
       {meetingTypes.length>0&&sel(filterMeeting,setFilterMeeting,<><option value="all">Tipo de reunión</option>{meetingTypes.map(m=><option key={m} value={m}>{m}</option>)}</>)}
       <span style={{fontSize:12,color:'#aaa'}}>{ft.length} tarea{ft.length!==1?'s':''}</span>
@@ -80,7 +99,7 @@ export default function AppPage(){
   const[profiles,setProfiles]=useState([])
   const[loading,setLoading]=useState(true)
   const[view,setView]=useState('list')
-  const[filterStatus,setFilterStatus]=useState('all')
+  const[filterStatus,setFilterStatus]=useState([])
   const[filterLeader,setFilterLeader]=useState('all')
   const[filterEngineer,setFilterEngineer]=useState('all')
   const[filterMeeting,setFilterMeeting]=useState('all')
@@ -99,33 +118,19 @@ export default function AppPage(){
     const ch=supabase.channel('app-rt').on('postgres_changes',{event:'*',schema:'public',table:'tasks'},loadAll).on('postgres_changes',{event:'*',schema:'public',table:'comments'},loadAll).subscribe()
     return()=>supabase.removeChannel(ch)
   },[loadAll])
-  const isManager=me?.role==='manager'
-  const isLeader=me?.role==='leader'
-  const canAdmin=isManager||isLeader
+  const isManager=me?.role==='manager',isLeader=me?.role==='leader',canAdmin=isManager||isLeader
   const leaders=profiles.filter(p=>p.role==='leader'||p.role==='manager')
   const engineers=profiles.filter(p=>p.role==='engineer')
   const meetingTypes=[...new Set(tasks.map(t=>t.meeting_type).filter(Boolean))].sort()
   const filteredByWeek=filterWeek===null?tasks:tasks.filter(t=>taskInWeek(t,filterWeek))
   const noFilters=['team','admin','report','metrics']
-  const VIEWS=[
-    {key:'list',icon:'≡',label:'Tareas'},
-    {key:'kanban',icon:'⊞',label:'Tablero'},
-    {key:'matrix',icon:'◎',label:'Matriz'},
-    {key:'team',icon:'⊙',label:'Equipo'},
-    {key:'report',icon:'📄',label:'Reporte'},
-    {key:'metrics',icon:'📊',label:'Métricas'},
-    ...(canAdmin?[{key:'admin',icon:'👥',label:'Usuarios'}]:[]),
-  ]
-  const done=tasks.filter(t=>t.status==='done').length
-  const pct=tasks.length?Math.round(done/tasks.length*100):0
+  const VIEWS=[{key:'list',icon:'≡',label:'Tareas'},{key:'kanban',icon:'⊞',label:'Tablero'},{key:'matrix',icon:'◎',label:'Matriz'},{key:'team',icon:'⊙',label:'Equipo'},{key:'report',icon:'📄',label:'Reporte'},{key:'metrics',icon:'📊',label:'Métricas'},...(canAdmin?[{key:'admin',icon:'👥',label:'Usuarios'}]:[]),]
+  const done=tasks.filter(t=>t.status==='done').length,pct=tasks.length?Math.round(done/tasks.length*100):0
   const viewTitle={list:'Todas las tareas',kanban:'Tablero Kanban',matrix:'Matriz Impacto / Esfuerzo',team:'Equipo',report:'Reporte Semanal',metrics:'Métricas',admin:'Administrar usuarios'}
   return(
     <div style={{display:'flex',height:'100vh',fontFamily:'system-ui,-apple-system,sans-serif',background:'#f5f4f9'}}>
       <div style={{width:210,minWidth:210,background:'#fff',borderRight:'0.5px solid #eee',display:'flex',flexDirection:'column'}}>
-        <div style={{padding:'16px 16px 14px',borderBottom:'0.5px solid #eee'}}>
-          <div style={{fontSize:15,fontWeight:600,display:'flex',alignItems:'center',gap:6}}><span style={{fontSize:18}}>⬡</span> TeamFlow</div>
-          <div style={{fontSize:11,color:'#aaa',marginTop:2}}>Gestión de equipo</div>
-        </div>
+        <div style={{padding:'16px 16px 14px',borderBottom:'0.5px solid #eee'}}><div style={{fontSize:15,fontWeight:600,display:'flex',alignItems:'center',gap:6}}><span style={{fontSize:18}}>⬡</span> TeamFlow</div><div style={{fontSize:11,color:'#aaa',marginTop:2}}>Gestión de equipo</div></div>
         <div style={{padding:'8px 0'}}>
           <div style={{padding:'4px 16px 6px',fontSize:10,color:'#bbb',textTransform:'uppercase',letterSpacing:.5}}>Vistas</div>
           {VIEWS.map(v=>(<div key={v.key} onClick={()=>setView(v.key)} style={{display:'flex',alignItems:'center',gap:8,padding:'7px 16px',fontSize:13,cursor:'pointer',color:view===v.key?'#111':'#888',background:view===v.key?'#f5f4f9':'transparent',fontWeight:view===v.key?500:400}} onMouseEnter={ev=>{if(view!==v.key)ev.currentTarget.style.background='#fafafa'}} onMouseLeave={ev=>{if(view!==v.key)ev.currentTarget.style.background='transparent'}}><span style={{fontSize:14,opacity:.7}}>{v.icon}</span> {v.label}</div>))}
@@ -142,14 +147,14 @@ export default function AppPage(){
         </div>
       </div>
       <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
-        <div style={{background:'#fff',borderBottom:'0.5px solid #eee',padding:'0 22px',height:50,display:'flex',alignItems:'center',gap:8,flexWrap:'nowrap',overflow:'hidden'}}>
+        <div style={{background:'#fff',borderBottom:'0.5px solid #eee',padding:'0 22px',height:50,display:'flex',alignItems:'center',gap:8,overflow:'hidden'}}>
           <span style={{fontSize:15,fontWeight:500,flex:'0 0 auto'}}>{viewTitle[view]}</span>
           {!noFilters.includes(view)&&(<>
             <div style={{display:'flex',alignItems:'center',gap:2,background:'#f7f7f9',border:'0.5px solid #ddd',borderRadius:7,padding:'3px 6px',flex:'0 0 auto'}}>
               <button onClick={()=>setFilterWeek(w=>w===null?-1:w-1)} style={{background:'none',border:'none',cursor:'pointer',fontSize:16,color:'#555',padding:'0 4px',lineHeight:1}}>&#8249;</button>
               <span onClick={()=>setFilterWeek(0)} style={{fontSize:12,fontWeight:500,color:filterWeek===0?'#3C3489':'#333',minWidth:120,textAlign:'center',cursor:'pointer',userSelect:'none'}}>{fmtWeekLabel(filterWeek)}</span>
               <button onClick={()=>setFilterWeek(w=>w===null?1:w+1)} style={{background:'none',border:'none',cursor:'pointer',fontSize:16,color:'#555',padding:'0 4px',lineHeight:1}}>&#8250;</button>
-              {filterWeek!==null&&<button onClick={()=>setFilterWeek(null)} title="Ver todas" style={{background:'none',border:'none',cursor:'pointer',fontSize:11,color:'#bbb',padding:'0 2px'}}>×</button>}
+              {filterWeek!==null&&<button onClick={()=>setFilterWeek(null)} style={{background:'none',border:'none',cursor:'pointer',fontSize:11,color:'#bbb',padding:'0 2px'}}>×</button>}
             </div>
             {(isManager||isLeader)&&<select value={filterLeader} onChange={e=>setFilterLeader(e.target.value)} style={{padding:'5px 8px',fontSize:12,border:'0.5px solid #ddd',borderRadius:7,background:'#fff',color:'#111',cursor:'pointer',flex:'0 0 auto'}}><option value="all">Líderes</option>{leaders.map(l=><option key={l.id} value={l.id}>{l.full_name}</option>)}</select>}
             <select value={filterEngineer} onChange={e=>setFilterEngineer(e.target.value)} style={{padding:'5px 8px',fontSize:12,border:'0.5px solid #ddd',borderRadius:7,background:'#fff',color:'#111',cursor:'pointer',flex:'0 0 auto'}}><option value="all">Ingenieros</option>{engineers.map(e=><option key={e.id} value={e.id}>{e.full_name}</option>)}</select>
